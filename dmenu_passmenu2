@@ -47,7 +47,7 @@ while [ "$DONE" -eq 0 ] ; do
         pass show -c "$SELECTION" 2>/dev/null
       else
         xdotool - <<<"type --clearmodifiers -- $(pass show "$SELECTION" | head -n 1)"
-        maciej@sodden maciej λ notify-send --urgency=normal --expire-time=10000 passmenu2 "$(pass show INTERNET/F-J/Github |tail -n +2)"
+        notify-send --urgency=normal --expire-time=10000 passmenu2 "$(pass show INTERNET/F-J/Github |tail -n +2)"
       fi
       DONE=1
     fi
