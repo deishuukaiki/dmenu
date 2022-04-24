@@ -44,10 +44,11 @@ while [ "$DONE" -eq 0 ] ; do
       # not a directory so it must be a real password entry
   
       if [[ $typeit -eq 0 ]]; then
+        notify-send --urgency=normal --expire-time=10000 passmenu2 "$(pass show $SELECTION | tail -n +2)\nPassword copied to clipboard!"
         pass show -c "$SELECTION" 2>/dev/null
       else
+        notify-send --urgency=normal --expire-time=10000 passmenu2 "$(pass show $SELECTION | tail -n +2)\nPassword copied to clipboard!"
         xdotool - <<<"type --clearmodifiers -- $(pass show "$SELECTION" | head -n 1)"
-        notify-send --urgency=normal --expire-time=10000 passmenu2 "$(pass show "$SELECTION" | tail -n +2)"
       fi
       DONE=1
     fi
