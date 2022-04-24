@@ -26,7 +26,7 @@ while [ "$DONE" -eq 0 ] ; do
   fi
   entry=$(printf '%s\n' "${password_files[@]}" | dmenu "$@" -l 15)
   
-  echo "entry: $entry"
+  # echo "entry: $entry"
   if [ -z "$entry" ] ; then
     DONE=1
     exit
@@ -44,11 +44,11 @@ while [ "$DONE" -eq 0 ] ; do
       # not a directory so it must be a real password entry
   
       if [[ $typeit -eq 0 ]]; then
-        notify-send --urgency=normal --expire-time=10000 passmenu2 "$(pass show $SELECTION | tail -n +2)\nPassword copied to clipboard!"
-        pass show -c "$SELECTION" 2>/dev/null
+        notify-send --urgency=normal --expire-time=10000 "Password copied to clipboard!" "$(pass show "$SELECTION" | tail -n +2)\n"
+        pass show -c "$SELECTION" > /dev/null
       else
-        notify-send --urgency=normal --expire-time=10000 passmenu2 "$(pass show $SELECTION | tail -n +2)\nPassword copied to clipboard!"
-        xdotool - <<<"type --clearmodifiers -- $(pass show "$SELECTION" | head -n 1)"
+        notify-send --urgency=normal --expire-time=10000 "Password copied to clipboard!" "$(pass show "$SELECTION" | tail -n +2)\n"
+        # xdotool - <<<"type --clearmodifiers -- $(pass show "$SELECTION" | head -n 1)"
       fi
       DONE=1
     fi
@@ -59,4 +59,4 @@ while [ "$DONE" -eq 0 ] ; do
     STARTDIR="$BASEDIR/$SELECTION"
   fi
 done
-
+echo "$SELECTION"
