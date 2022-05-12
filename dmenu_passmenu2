@@ -2,17 +2,6 @@
 
 shopt -s nullglob globstar
 
-typeit=0
-if [[ $1 == "--type" ]]; then
-	typeit=1
-	shift
-fi
-
-
-if [[ -f ~/.cache/passmenuprev ]] ; then
-    PREVENTRY=$(cat ~/.cache/passmenuprev)
-    PREVENTRYSHORT=$(grep -o -P '/.*(?=\/.*\/)\/\K.*' <<< $PREVENTRY)
-fi
 STARTDIR=$PASSWORD_STORE_DIR
 BASEDIR=$STARTDIR
 DONE=0
@@ -20,55 +9,44 @@ LEVEL=0
 SELECTION=""
 
 while [ "$DONE" -eq 0 ] ; do 
-  password_files=( "$STARTDIR"/* )
-  password_files=( "${password_files[@]#"$STARTDIR"/}" )
-  password_files=( "${password_files[@]%.gpg}" )
-  
-  if [ "$LEVEL" -ne 0 ] ; then
-    password_files=(".." "${password_files[@]}") 
-  else
-    password_files=("${password_files[@]}" "Previous entry - $PREVENTRYSHORT")
-  fi
-  entry=$(printf '%s\n' "${password_files[@]}" | dmenu "$@" -l 15)
-  
-  # echo "entry: $entry"
-  if [ -z "$entry" ] ; then
-    DONE=1
-    exit
-  fi
+    PASSWORDFILES=( "$STARTDIR"/* ) # create array with password files
+    PASSWORDFILES=( "${PASSWORDFILES[@]#"$STARTDIR"/}" ) # remove $STARTDIR from array values
+    PASSWORDFILES=( "${PASSWORDFILES[@]%.gpg}" ) # remove .gpg from array values
 
-  if [ "$entry" != ".." ] ; then
+    # if $LEVEL is other than 0, add ".." to password files
+    # it will be later used to go back to parent directory
+    if [ "$LEVEL" -ne 0 ] ; then
+        PASSWORDFILES=(".." "${PASSWORDFILES[@]}") 
+    fi
 
-    # check if previous entry was selected
-    if [ "$entry" = "Previous entry - $PREVENTRYSHORT" ] ; then
-        SELECTION="$PREVENTRY"
-    else
-      SELECTION="$SELECTION/$entry"
+    # spawn dmenu
+    ENTRY=$(printf '%s\n' "${PASSWORDFILES[@]}" | dmenu "$@" -l 15)
+
+    # if $ENTRY lenght is 0, quit. 
+    if [ -z "$ENTRY" ] ; then
+        DONE=1
+        exit
     fi
-  
-    # check if another dir
-    if [ -d "$STARTDIR/$entry" ] ; then
-      STARTDIR="$STARTDIR/$entry"
-      LEVEL=$((LEVEL+1))
+
+    # user hasn't chosen going back in file tree
+    if [ "$ENTRY" != ".." ] ; then
+        SELECTION="$SELECTION/$ENTRY"
+
+        # if user has chosen directory
+        if [ -d "$STARTDIR/$ENTRY" ] ; then
+            STARTDIR="$STARTDIR/$ENTRY"
+            LEVEL=$((LEVEL+1))
+        else
+            notify-send --urgency=normal --expire-time=10000 "Password copied to clipboard!" "$SELECTION"
+            pass show -c "$SELECTION" > /dev/null
+            DONE=1
+        fi
     else
-      # not a directory so it must be a real password entry
-  
-      if [[ $typeit -eq 0 ]]; then
-        notify-send --urgency=normal --expire-time=10000 "Password copied to clipboard!" "$(pass show "$SELECTION" | tail -n +2)\n"
-        pass show -c "$SELECTION" > /dev/null
-      else
-        notify-send --urgency=normal --expire-time=10000 "Password copied to clipboard!" "$(pass show "$SELECTION" | tail -n +2)\n"
-        # xdotool - <<<"type --clearmodifiers -- $(pass show "$SELECTION" | head -n 1)"
-      fi
-      DONE=1
+        # user has chosen to go back in the file tree
+        LEVEL=$((LEVEL-1))
+        # go one directory back
+        SELECTION=$(grep -o -P '/.*(?=\/)' <<< $SELECTION)
+        STARTDIR="$BASEDIR/$SELECTION"
     fi
-  
-  else
-    LEVEL=$((LEVEL-1))
-    # removes last slash and text from selection
-    SELECTION=$(grep -o -P '/.*(?=\/)' <<< $SELECTION)
-    STARTDIR="$BASEDIR/$SELECTION"
-  fi
 done
-echo "$SELECTION" > ~/.cache/passmenuprev
 echo "$SELECTION"
