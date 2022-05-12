@@ -9,11 +9,14 @@ if [[ $1 == "--type" ]]; then
 fi
 
 
+if [[ -f ~/.cache/passmenuprev ]] ; then
+    PREVENTRY=$(cat ~/.cache/passmenuprev)
+    PREVENTRYSHORT=$(grep -o -P '/.*(?=\/.*\/)\/\K.*' <<< $PREVENTRY)
+fi
 STARTDIR=$PASSWORD_STORE_DIR
 BASEDIR=$STARTDIR
 DONE=0
 LEVEL=0
-PREVSELECTION=""
 SELECTION=""
 
 while [ "$DONE" -eq 0 ] ; do 
@@ -23,6 +26,8 @@ while [ "$DONE" -eq 0 ] ; do
   
   if [ "$LEVEL" -ne 0 ] ; then
     password_files=(".." "${password_files[@]}") 
+  else
+    password_files=("${password_files[@]}" "Previous entry - $PREVENTRYSHORT")
   fi
   entry=$(printf '%s\n' "${password_files[@]}" | dmenu "$@" -l 15)
   
@@ -31,10 +36,15 @@ while [ "$DONE" -eq 0 ] ; do
     DONE=1
     exit
   fi
-  
+
   if [ "$entry" != ".." ] ; then
-    PREVSELECTION=$SELECTION
-    SELECTION="$SELECTION/$entry"
+
+    # check if previous entry was selected
+    if [ "$entry" = "Previous entry - $PREVENTRYSHORT" ] ; then
+        SELECTION="$PREVENTRY"
+    else
+      SELECTION="$SELECTION/$entry"
+    fi
   
     # check if another dir
     if [ -d "$STARTDIR/$entry" ] ; then
@@ -55,8 +65,10 @@ while [ "$DONE" -eq 0 ] ; do
   
   else
     LEVEL=$((LEVEL-1))
-    SELECTION=$PREVSELECTION
+    # removes last slash and text from selection
+    SELECTION=$(grep -o -P '/.*(?=\/)' <<< $SELECTION)
     STARTDIR="$BASEDIR/$SELECTION"
   fi
 done
+echo "$SELECTION" > ~/.cache/passmenuprev
 echo "$SELECTION"
